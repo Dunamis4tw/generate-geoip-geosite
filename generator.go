@@ -24,14 +24,13 @@ func generate(fileDataArray []FileData, GeositeFilename, GeoipFilename string) e
 		Languages: extractCategories(fileDataArray),
 	})
 	if err != nil {
-		return fmt.Errorf("cannot create new mmdb: %w", err)
+		log.Fatalf("ERROR: cannot create new mmdb: %v", err)
 	}
 
 	// Пытаемся создать файл geosite.db
-	// outSites, err := os.Create("geosite.db")
 	outSites, err := os.Create(GeositeFilename)
 	if err != nil {
-		return fmt.Errorf("cannot create geosite file: %w", err)
+		log.Fatalf("ERROR: cannot create geosite file: %v", err)
 	}
 	defer outSites.Close()
 
@@ -97,7 +96,8 @@ func generate(fileDataArray []FileData, GeositeFilename, GeoipFilename string) e
 
 				// Вставляем полученный IP адрес в указанную категорию в MMDB GeoIP
 				if err := mmdb.Insert(ipNet, mmdbtype.String(fileData.Category)); err != nil {
-					return fmt.Errorf("cannot insert into mmdb: %w", err)
+					log.Printf("WARNING: Cannot insert '%s' into mmdb: %v", ipNet, err)
+					continue
 				}
 
 				// Выводит в консоль информацию о скорости добавления
@@ -178,13 +178,12 @@ func generate(fileDataArray []FileData, GeositeFilename, GeoipFilename string) e
 			if err := geosite.Write(outSites, map[string][]geosite.Item{
 				fileData.Category: domains,
 			}); err != nil {
-				return fmt.Errorf("cannot write into geosite file: %w", err)
+				log.Fatalf("ERROR: cannot write into geosite file: %v", err)
 			}
 		}
 	}
 
 	// Пытаемся создать файл geoip.db
-	// outIPs, err := os.Create("geoip.db")
 	outIPs, err := os.Create(GeoipFilename)
 	if err != nil {
 		return fmt.Errorf("cannot create geoip file: %w", err)
