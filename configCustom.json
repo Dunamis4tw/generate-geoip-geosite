@@ -1,0 +1,5 @@
+{
+  "path": "./custom/",
+  "geositeFilename": "./custom/geosite.db",
+  "geoipFilename": "./custom/geoip.db"
+}

@@ -1,0 +1,32 @@
+{
+  "path": "./rublacklist/",
+  "geositeFilename": "./rublacklist/geosite.db",
+  "geoipFilename": "./rublacklist/geoip.db",
+  "sources": [
+    {
+      "url": "https://reestr.rublacklist.net/api/v3/dpi/",
+      "contentType": "JsonRublacklistDPI",
+      "category": "RublacklistDPI"
+    },
+    {
+      "url": "https://reestr.rublacklist.net/api/v3/domains/",
+      "contentType": "JsonListDomains",
+      "category": "RublacklistDomains"
+    },
+    {
+      "url": "https://reestr.rublacklist.net/api/v3/ct-domains/",
+      "contentType": "JsonListDomains",
+      "category": "CensorTracker"
+    },
+    {
+      "url": "https://reestr.rublacklist.net/api/v3/ips/",
+      "contentType": "JsonListIPs",
+      "category": "RublacklistIPs"
+    },
+    {
+      "url": "https://reestr.rublacklist.net/api/v3/disseminators/",
+      "contentType": "JsonListDomains",
+      "category": "RublacklistDisseminators"
+    }
+  ]
+}
