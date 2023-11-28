@@ -1,4 +1,6 @@
 .vscode
 *.db
 *.tmp
-/test
+test
+rublacklist
+antizapret/*.lst
