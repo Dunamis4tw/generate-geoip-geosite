@@ -43,7 +43,7 @@ func Downloader(configs *Config) error {
 			source.DomainFilename = configs.Path + StartFilename + "-domain-" + source.Category + ".lst"
 		}
 		if len(source.DownloadedFilename) == 0 {
-			source.DownloadedFilename = configs.Path + uuid.New().String()
+			source.DownloadedFilename = configs.Path + uuid.New().String() + ".tmp"
 		}
 
 		log.Printf("INFO: Downloading the file '%s' to '%s'...", source.URL, source.DownloadedFilename)
