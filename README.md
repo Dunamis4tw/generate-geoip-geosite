@@ -1,15 +1,34 @@
-# Geoip and geosite generator for sing-box
+# GeoIP and Geosite generator for Sing-Box
 
-It generates geoip and geosite from lists of domains and IP addresses.
+Generates GeoIP and Geosite files (used by Sing-Box to configure routes) from lists of IP addresses and domains.
 
-## Features
+<!--
+# Генератор Geoip и Geosite для Sing-Box
 
-- Supports various input list formats (csv, json, list and others).
-- Supports exclusion lists to exclude unnecessary domains and IP addresses.
-- Supports combining lists into categories to configure routes in sing-box.
-- Supports downloading current lists from public sources.
+Генерирует файлы GeoIP и Geosite (используются Sing-Box'ом для настройки маршрутов) из списков IP-адресов и доменов.
+-->
 
-<!-- ## Getting start -->
+## Program Features
+
+- **List Grouping into Categories:** Enables the grouping of lists into categories for more refined configuration of routes in Sing-Box.
+
+- **Downloading Up-to-date Lists:** Supports the capability to download up-to-date lists from publicly available sources.
+
+- **Various Downloadable List Formats Support:** The program can handle lists in formats such as csv, json, list, and others.
+
+- **Exclusion of Unnecessary Domains and IP Addresses:** It provides the option to use exclusion lists to eliminate redundant domains and IP addresses.
+
+<!-- 
+## Возможности программы
+
+- **Группировка списков в категории:** Позволяет объединять списки в категории для более тонкой настройки маршрутов в Sing-Box.
+
+- **Загрузка актуальных списков:** Поддерживает возможность загружать актуальные списки из общедоступных источников.
+
+- **Поддержка различных форматов загружаемых списков:** Программа способна обрабатывать списки в форматах csv, json, list и других.
+
+- **Исключение ненужных доменов и IP-адресов:** Предоставляет возможность использовать списки исключений для исключения избыточных доменов и IP-адресов.
+-->
 
 ## Build
 
@@ -81,6 +100,22 @@ Each source within the "Sources" array is defined by the following fields:
    - *Description*: The filename for storing domain-related data.
    - *Default Value*: "{include/exclude}-domain-{category_name}.lst"
 
+## Config examples
+
+The project contains example configuration files:
+
+- **`configAntifilter.json`**
+  - Downloads lists of IP addresses and domains provided by [Antifilter](https://antifilter.download/), then categorizes each list.
+
+- **`configRublacklist.json`**
+  - Downloads lists of IP addresses and domains provided by [Roskomsvoboda](https://reestr.rublacklist.net/ru/article/api/), then categorizes each list.
+
+- **`configAntizapret.json`**
+  - Downloads lists of IP addresses and domains provided by [zapret-info/z-i](https://github.com/zapret-info/z-i). Unnecessary domains are then excluded using regular expressions from the file `antizapret\exclude-domain-antizapret.rgx` (Slightly modified [exclude-regexp-dist.awk](https://bitbucket.org/anticensority/antizapret-pac-generator-light/src/master/config/exclude-regexp-dist.awk)). The result is a list of IP addresses and domains roughly corresponding to the Antizapret lists.
+
+- **`configCustom.json`**
+  - A configuration file with custom lists of IP addresses and domains. You only need to specify the path to the directory where your lists are stored in files named "{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}".
+
 <!--
 ## Примеры конфигурации
 
@@ -98,21 +133,5 @@ Each source within the "Sources" array is defined by the following fields:
 - **`configCustom.json`**
   - Конфиг файл со своими списками IP-адресов и Доменов. Вы лишь указываете путь до директории, где хранятся ваши списки в файлах с названием "{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}".
 -->
-
-## Config examples
-
-The project contains example configuration files:
-
-- **`configAntifilter.json`**
-  - Downloads lists of IP addresses and domains provided by [Antifilter](https://antifilter.download/), then categorizes each list.
-
-- **`configRublacklist.json`**
-  - Downloads lists of IP addresses and domains provided by [Roskomsvoboda](https://reestr.rublacklist.net/ru/article/api/), then categorizes each list.
-
-- **`configAntizapret.json`**
-  - Downloads lists of IP addresses and domains provided by [zapret-info/z-i](https://github.com/zapret-info/z-i). Unnecessary domains are then excluded using regular expressions from the file `antizapret\exclude-domain-antizapret.rgx` (Slightly modified [exclude-regexp-dist.awk](https://bitbucket.org/anticensority/antizapret-pac-generator-light/src/master/config/exclude-regexp-dist.awk)). The result is a list of IP addresses and domains roughly corresponding to the Antizapret lists.
-
-- **`configCustom.json`**
-  - A configuration file with custom lists of IP addresses and domains. You only need to specify the path to the directory where your lists are stored in files named "{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}".
 
 <!-- ## How to use -->
