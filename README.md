@@ -100,7 +100,7 @@ Each source within the "Sources" array is defined by the following fields:
    - *Description*: The filename for storing domain-related data.
    - *Default Value*: "{include/exclude}-domain-{category_name}.lst"
 
-## Config examples
+## Config Examples
 
 The project contains example configuration files:
 
