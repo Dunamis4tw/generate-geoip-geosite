@@ -1,6 +1,6 @@
-# GeoIP and Geosite generator for Sing-Box
+# GeoIP, Geosite and Rule-Set generator for Sing-Box
 
-Generates GeoIP and Geosite files (used by Sing-Box to configure routes) from lists of IP addresses and domains.
+Generates GeoIP, Geosite and Rule-Set files (used by Sing-Box to configure routes) from lists of IP addresses and domains.
 
 <!--
 # Генератор Geoip и Geosite для Sing-Box
@@ -18,6 +18,8 @@ Generates GeoIP and Geosite files (used by Sing-Box to configure routes) from li
 
 - **Exclusion of Unnecessary Domains and IP Addresses:** It provides the option to use exclusion lists to eliminate redundant domains and IP addresses.
 
+- **Rule-Set Generation:** The program is capable of generating new Rule-Sets in both .json and .srs formats, replacing GeoSite and GeoIP in Sing-Box starting from version v1.8.0-alpha.
+
 <!-- 
 ## Возможности программы
 
@@ -28,6 +30,8 @@ Generates GeoIP and Geosite files (used by Sing-Box to configure routes) from li
 - **Поддержка различных форматов загружаемых списков:** Программа способна обрабатывать списки в форматах csv, json, list и других.
 
 - **Исключение ненужных доменов и IP-адресов:** Предоставляет возможность использовать списки исключений для исключения избыточных доменов и IP-адресов.
+
+- Генерация Rule-Set: программа способна генерировать новые Rule-Set в форматах .json и .srs (пришли на замену Geosite и GeoIP в Sing-Box начиная с версии v1.8.0-альфа).
 -->
 
 ## Usage
