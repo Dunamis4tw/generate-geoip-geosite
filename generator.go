@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -14,7 +15,55 @@ import (
 	"github.com/sagernet/sing-box/common/geosite"
 )
 
-func generate(fileDataArray []FileData, GeositeFilename, GeoipFilename string) error {
+// Rule структура для представления правил в JSON
+type Rule struct {
+	Domain       []string `json:"domain"`
+	DomainSuffix []string `json:"domain_suffix"`
+	// DomainKeyword []string `json:"domain_keyword"`
+	// DomainRegex   []string `json:"domain_regex"`
+	// SourceIPCIDR  []string `json:"source_ip_cidr"`
+	IPCIDR []string `json:"ip_cidr"`
+}
+
+// RuleSet структура для представления всего JSON файла
+type RuleSet struct {
+	Version int    `json:"version"`
+	Rules   []Rule `json:"rules"`
+}
+
+// SaveRuleSetToFile сохраняет набор правил в файл
+func SaveRuleSetToFile(ruleSet RuleSet, filename string) error {
+	jsonData, err := json.MarshalIndent(ruleSet, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(filename, jsonData, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ReadRuleSetFromFile читает набор правил из файла
+func ReadRuleSetFromFile(filename string) (RuleSet, error) {
+	var ruleSet RuleSet
+
+	fileData, err := os.ReadFile(filename)
+	if err != nil {
+		return ruleSet, err
+	}
+
+	err = json.Unmarshal(fileData, &ruleSet)
+	if err != nil {
+		return ruleSet, err
+	}
+
+	return ruleSet, nil
+}
+
+func generate(fileDataArray []FileData, config Config) error {
 
 	// Подготавливаем Writter для записи данных в бинарный формат баз данных MaxMind DB (MMDB).
 	mmdb, err := mmdbwriter.New(mmdbwriter.Options{
@@ -28,7 +77,7 @@ func generate(fileDataArray []FileData, GeositeFilename, GeoipFilename string) e
 	}
 
 	// Пытаемся создать файл geosite.db
-	outSites, err := os.Create(GeositeFilename)
+	outSites, err := os.Create(config.GeositeFilename)
 	if err != nil {
 		log.Fatalf("ERROR: cannot create geosite file: %v", err)
 	}
@@ -41,6 +90,14 @@ func generate(fileDataArray []FileData, GeositeFilename, GeoipFilename string) e
 		if !fileData.IsInclude {
 			continue
 		}
+
+		// Подготавливаем списки для rule-set
+		RuleSetDomain := []string{}
+		RuleSetDomainSuffix := []string{}
+		// RuleSetDomainKeyword:= []string{}
+		// RuleSetDomainRegex:=   []string{}
+		// RuleSetSourceIPCIDR:=  []string{}
+		RuleSetIPCIDR := []string{}
 
 		// Если файл с IP-адресами
 		if fileData.IsIP {
@@ -94,6 +151,8 @@ func generate(fileDataArray []FileData, GeositeFilename, GeoipFilename string) e
 					}
 				}
 
+				RuleSetIPCIDR = append(RuleSetIPCIDR, ipNet.String())
+
 				// Вставляем полученный IP адрес в указанную категорию в MMDB GeoIP
 				if err := mmdb.Insert(ipNet, mmdbtype.String(fileData.Category)); err != nil {
 					log.Printf("WARNING: Cannot insert '%s' into mmdb: %v", ipNet, err)
@@ -146,17 +205,20 @@ func generate(fileDataArray []FileData, GeositeFilename, GeoipFilename string) e
 						Type:  geosite.RuleTypeDomainSuffix,
 						Value: strings.Replace(domain, "*", "", 1),
 					})
+					RuleSetDomainSuffix = append(RuleSetDomainSuffix, strings.Replace(domain, "*", "", 1))
 					// А также добавляем сам домен без "*" и "." задав тип, означающий что эта запись - домен
 					domains = append(domains, geosite.Item{
 						Type:  geosite.RuleTypeDomain,
 						Value: strings.Replace(domain, "*.", "", 1),
 					})
+					RuleSetDomain = append(RuleSetDomain, strings.Replace(domain, "*.", "", 1))
 				} else {
 					// в случае, если нет символа "*", то просто добавляем домен задав тип, означающий что эта запись - домен
 					domains = append(domains, geosite.Item{
 						Type:  geosite.RuleTypeDomain,
 						Value: domain,
 					})
+					RuleSetDomain = append(RuleSetDomain, domain)
 				}
 
 				// Выводит в консоль информацию о скорости добавления
@@ -178,22 +240,50 @@ func generate(fileDataArray []FileData, GeositeFilename, GeoipFilename string) e
 			if err := geosite.Write(outSites, map[string][]geosite.Item{
 				fileData.Category: domains,
 			}); err != nil {
-				log.Fatalf("ERROR: cannot write into geosite file: %v", err)
+				log.Println("ERROR: cannot write into geosite file:", err)
 			}
 		}
+
+		// Создаем rule-set и заполняем его получившимися списками
+		ruleSet := RuleSet{
+			Version: 1,
+			Rules: []Rule{
+				{
+					Domain:       RuleSetDomain,
+					DomainSuffix: RuleSetDomainSuffix,
+					// DomainKeyword: []string{},
+					// DomainRegex:   []string{},
+					// SourceIPCIDR:  []string{},
+					IPCIDR: RuleSetIPCIDR,
+				},
+			},
+		}
+
+		// Сохраняем rule-set в файл
+		if len(RuleSetIPCIDR) != 0 {
+			if err := SaveRuleSetToFile(ruleSet, config.Path+"ip-"+fileData.Category+".json"); err != nil {
+				log.Println("ERROR: Error while saving rule-set:", err)
+			}
+		} else if len(RuleSetDomain) != 0 || len(RuleSetDomainSuffix) != 0 {
+			if err := SaveRuleSetToFile(ruleSet, config.Path+"domain-"+fileData.Category+".json"); err != nil {
+				log.Println("ERROR: Error while saving rule-set:", err)
+			}
+		}
+
 	}
 
 	// Пытаемся создать файл geoip.db
-	outIPs, err := os.Create(GeoipFilename)
+	outIPs, err := os.Create(config.GeoipFilename)
 	if err != nil {
-		return fmt.Errorf("cannot create geoip file: %w", err)
+		log.Println("ERROR: cannot create geoip file:", err)
 	}
 	defer outIPs.Close()
 
 	// Сохраняем в файл GeoIP.db полученные IP-адреса
 	if _, err := mmdb.WriteTo(outIPs); err != nil {
-		return fmt.Errorf("cannot write into geoip file: %w", err)
+		log.Println("ERROR: cannot write into geoip file:", err)
 	}
+
 	return nil
 }
 

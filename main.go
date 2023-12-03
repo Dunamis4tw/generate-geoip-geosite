@@ -15,6 +15,6 @@ func main() {
 	fileDataArray := processFiles(configs.Path)
 
 	log.Print("==== GENERATING GEOSITE & GEOIP ====")
-	generate(fileDataArray, configs.GeositeFilename, configs.GeoipFilename)
+	generate(fileDataArray, *configs)
 
 }
