@@ -1,0 +1,22 @@
+{
+    "version": 1,
+    "rules": [
+        {
+            "domain": [
+                "mydomain.net",
+                "mydomain.net",
+                "domain1.com",
+                "domain3.com",
+                "domain5.com",
+                "mydomain1.net",
+                "mydomain2.net",
+                "mydomain3.net",
+                "mydomain4.net"
+            ],
+            "domain_suffix": [
+                ".mydomain.net"
+            ],
+            "ip_cidr": []
+        }
+    ]
+}

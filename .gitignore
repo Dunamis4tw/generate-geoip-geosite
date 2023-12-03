@@ -1,6 +1,8 @@
 .vscode
-*.db
-*.tmp
 test
+antifilter
 rublacklist
 antizapret/*.lst
+antizapret/*.json
+antizapret/*.db
+antizapret/*.tmp
