@@ -30,6 +30,14 @@ Generates GeoIP and Geosite files (used by Sing-Box to configure routes) from li
 - **Исключение ненужных доменов и IP-адресов:** Предоставляет возможность использовать списки исключений для исключения избыточных доменов и IP-адресов.
 -->
 
+## Usage
+
+To use this program, you can run it from the command line with the following options:
+
+```bash
+generate-geoip-geosite -c /path/to/config.json
+```
+
 ## Build
 
 Given that the Go Language compiler (version 1.11 or greater is required) is installed, you can build it with:
@@ -133,5 +141,3 @@ The project contains example configuration files:
 - **`configCustom.json`**
   - Конфиг файл со своими списками IP-адресов и Доменов. Вы лишь указываете путь до директории, где хранятся ваши списки в файлах с названием "{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}".
 -->
-
-<!-- ## How to use -->
