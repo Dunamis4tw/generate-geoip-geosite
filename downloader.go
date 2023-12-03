@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -21,10 +20,9 @@ func Downloader(configs *Config) error {
 		// Если папки нет, создаем её
 		err := os.MkdirAll(configs.Path, os.ModePerm)
 		if err != nil {
-			fmt.Println("Error creating folder:", err)
-			return err
+			return fmt.Errorf("failed to create directory '%s': %v", configs.Path, err)
 		}
-		fmt.Println("Folder successfully created:", configs.Path)
+		logInfo.Printf("The directory '%s' was missing, but it was created:", configs.Path)
 	}
 
 	for _, source := range configs.Sources {
@@ -46,24 +44,24 @@ func Downloader(configs *Config) error {
 			source.DownloadedFilename = configs.Path + uuid.New().String() + ".tmp"
 		}
 
-		log.Printf("INFO: Downloading the file '%s' to '%s'...", source.URL, source.DownloadedFilename)
+		logInfo.Printf("Downloading the file '%s' to '%s'...", source.URL, source.DownloadedFilename)
 		err := downloadFile(source.URL, source.DownloadedFilename)
 		if err != nil {
-			return fmt.Errorf("error downloading file: %v", err)
+			return fmt.Errorf("ERROR: Error downloading file: %v", err)
 		}
 
 		data, err := os.ReadFile(source.DownloadedFilename)
 		if err != nil {
-			return fmt.Errorf("error reading file: %v", err)
+			return fmt.Errorf("ERROR: Error reading file: %v", err)
 		}
 
 		parserFunc, ok := parsers[source.ContentType]
 		if !ok {
 			parserFunc = parseDefaultList
-			return fmt.Errorf("invalid data handler type: %s", source.ContentType)
+			return fmt.Errorf("ERROR: Invalid data handler type: %s", source.ContentType)
 		}
 
-		log.Printf("INFO: Parsing the file '%s'...", source.DownloadedFilename)
+		logInfo.Printf("Parsing the file '%s'...", source.DownloadedFilename)
 		ipAddresses, domains := parserFunc(string(data))
 
 		if len(ipAddresses) != 0 {
@@ -71,7 +69,7 @@ func Downloader(configs *Config) error {
 			if err != nil {
 				return fmt.Errorf("error writing IP addresses to file: %v", err)
 			}
-			log.Printf("INFO: Parsed IP addresses are written in '%s'", source.IpFilename)
+			logInfo.Printf("Parsed IP addresses are written in '%s'", source.IpFilename)
 		}
 
 		if len(domains) != 0 {
@@ -79,12 +77,12 @@ func Downloader(configs *Config) error {
 			if err != nil {
 				return fmt.Errorf("error writing domains to file: %v", err)
 			}
-			log.Printf("INFO: Parsed domains are written in '%s'", source.DomainFilename)
+			logInfo.Printf("Parsed domains are written in '%s'", source.DomainFilename)
 		}
 
 		err = os.Remove(source.DownloadedFilename)
 		if err != nil {
-			return fmt.Errorf("error removing file: %v", err)
+			return fmt.Errorf("ERROR: Error removing file: %v", err)
 		}
 	}
 	return nil
@@ -114,7 +112,7 @@ func parseJsonListDomains(jsonData string) ([]string, []string) {
 	var domains []string
 	err := json.Unmarshal([]byte(jsonData), &domains)
 	if err != nil {
-		log.Printf("WARNING: %v", err)
+		logWarn.Print(err)
 		return nil, nil
 	}
 	return nil, domains
@@ -124,7 +122,7 @@ func parseJsonListIPs(jsonData string) ([]string, []string) {
 	var ips []string
 	err := json.Unmarshal([]byte(jsonData), &ips)
 	if err != nil {
-		log.Printf("WARNING: %v", err)
+		logWarn.Print(err)
 		return nil, nil
 	}
 	return ips, nil
@@ -142,7 +140,7 @@ func parseJsonRublacklistDPI(jsonData string) ([]string, []string) {
 	var data []Data
 	err := json.Unmarshal([]byte(jsonData), &data)
 	if err != nil {
-		log.Printf("WARNING: %v", err)
+		logWarn.Print(err)
 		return nil, nil
 	}
 

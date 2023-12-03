@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"errors"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -22,11 +21,11 @@ type FileData struct {
 	// ExcludeData []string // содержимое файла exclude с регулярными выражениями
 }
 
-func processFiles(folderPath string) []FileData {
+func processFiles(folderPath string) ([]FileData, error) {
 	// Получаем список файлов в папке
 	files, err := getFilesInFolder(folderPath)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// Создаем массив структур FileData
@@ -34,17 +33,17 @@ func processFiles(folderPath string) []FileData {
 
 	// Обрабатываем каждый файл и заполняем массив структур
 	for _, file := range files {
-		log.Printf("INFO: Reading the file '%s'...\n", file)
 		fileData, err := getFileInfo(file)
 		if err != nil {
-			log.Printf("WARNING: the file '%s' does not match the format: %v\n", file, err)
+			logWarn.Printf("file '%s' skipped: %v", file, err)
 			continue
 		}
+		logInfo.Printf("file '%s' successfully read", file)
 
 		fileDataArray = append(fileDataArray, *fileData)
 	}
 
-	return fileDataArray
+	return fileDataArray, nil
 }
 
 // getFilesInFolder возвращает список .lst и .rgx файлов в заданной папке
@@ -217,7 +216,7 @@ func readRegexFile(filePath string) ([]*regexp.Regexp, error) {
 		// Компилируем полученную регулярку
 		rx, err := regexp.Compile(line)
 		if err != nil {
-			log.Println(err)
+			logWarn.Println(err)
 			continue
 		}
 

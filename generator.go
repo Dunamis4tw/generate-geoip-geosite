@@ -75,13 +75,13 @@ func generate(fileDataArray []FileData, config Config) error {
 		Languages: extractCategories(fileDataArray),
 	})
 	if err != nil {
-		log.Fatalf("ERROR: cannot create new mmdb: %v", err)
+		return fmt.Errorf("cannot create new mmdb: %v", err)
 	}
 
 	// Пытаемся создать файл geosite.db
 	outSites, err := os.Create(config.GeositeFilename)
 	if err != nil {
-		log.Fatalf("ERROR: cannot create geosite file: %v", err)
+		return fmt.Errorf("cannot create geosite file: %v", err)
 	}
 	defer outSites.Close()
 
@@ -103,8 +103,8 @@ func generate(fileDataArray []FileData, config Config) error {
 
 		// Если файл с IP-адресами
 		if fileData.IsIP {
-
-			log.Printf("INFO: Adding IP addresses from the '%s' file...", fileData.Path)
+			// Пишем в лог, что начали добавление IP-адресов
+			logInfo.Printf("adding IP addresses from the '%s' file...", fileData.Path)
 			startTime := time.Now()
 			lastIndex := 0
 
@@ -157,7 +157,7 @@ func generate(fileDataArray []FileData, config Config) error {
 
 				// Вставляем полученный IP адрес в указанную категорию в MMDB GeoIP
 				if err := mmdb.Insert(ipNet, mmdbtype.String(fileData.Category)); err != nil {
-					log.Printf("WARNING: Cannot insert '%s' into mmdb: %v", ipNet, err)
+					logWarn.Printf("cannot insert '%s' into mmdb: %v", ipNet, err)
 					continue
 				}
 
@@ -174,16 +174,19 @@ func generate(fileDataArray []FileData, config Config) error {
 				fmt.Println()
 			}
 
-			log.Printf("INFO: IP addresses from file '%s' added!", fileData.Path)
+			// Пишем в лог, что закончили добавление IP-адресов
+			logInfo.Printf("ip addresses from file '%s' added!", fileData.Path)
 		} else { // Если файл с доменами
 
-			log.Printf("INFO: Adding domains from the '%s' file...", fileData.Path)
+			// Пишем в лог, что начали добавление Доменов
+			logInfo.Printf("adding domains from the '%s' file...", fileData.Path)
 			// Создаём массив айтемов (доменов) geosite (объект из библиотеки сингбокса)
 			var domains []geosite.Item
 			// Находим исключающий файл с доменами этой же категории
 			ExcludeFileData := findFileData(fileDataArray, false, false, false, fileData.Category)
 			ExcludeFileDataRegex := findFileData(fileDataArray, false, false, true, fileData.Category)
 
+			// Нужны для вывода скорости добавления во время выполнения
 			startTime := time.Now()
 			lastIndex := 0
 
@@ -236,13 +239,14 @@ func generate(fileDataArray []FileData, config Config) error {
 			if lastIndex != 0 {
 				fmt.Println()
 			}
-			log.Printf("INFO: Domains from file '%s' added!", fileData.Path)
+			// Пишем в лог, что закончили добавление IP-адресов
+			logInfo.Printf("domains from file '%s' added!", fileData.Path)
 
 			// Сохраняем в файл GeoSite.db полученные домены с указанной категорией
 			if err := geosite.Write(outSites, map[string][]geosite.Item{
 				fileData.Category: domains,
 			}); err != nil {
-				log.Println("ERROR: cannot write into geosite file:", err)
+				return fmt.Errorf("cannot write into geosite file: %v", err)
 			}
 		}
 
@@ -269,7 +273,7 @@ func generate(fileDataArray []FileData, config Config) error {
 		// Сохраняем rule-set в файл
 		if len(ruleSet.Rules[0].IPCIDR) != 0 || len(ruleSet.Rules[0].Domain) != 0 || len(ruleSet.Rules[0].DomainSuffix) != 0 {
 			if err := SaveRuleSetToFile(ruleSet, config.Path+"ruleset-"+strIpOrDomain+"-"+fileData.Category+".json"); err != nil {
-				log.Println("ERROR: Error while saving rule-set:", err)
+				return fmt.Errorf("error while saving rule-set: %v", err)
 			}
 		}
 
@@ -284,21 +288,21 @@ func generate(fileDataArray []FileData, config Config) error {
 
 		// Конвертируем полученный json функцией sing-box'а
 		if plainRuleSetCompat.UnmarshalJSON(jsonData) != nil {
-			log.Println("ERROR: Json ruleset unmarshalization error:", err)
+			return fmt.Errorf("json ruleset unmarshalization error: %v", err)
 		}
 		// Проверяем версию rule-set
 		plainRuleSetCompat.Upgrade()
 
-		// Пытаемся создать .srs файл
+		// Создаём .srs файл
 		RuleSetSrs, err := os.Create(config.Path + "ruleset-" + strIpOrDomain + "-" + fileData.Category + ".srs")
 		if err != nil {
-			log.Println("ERROR: cannot create .srs file:", err)
+			return fmt.Errorf("cannot create .srs file: %v", err)
 		}
 		defer RuleSetSrs.Close()
 
-		// Сохраняем в файл GeoIP.db полученные IP-адреса
+		// Пишем в .srs файл
 		if err := srs.Write(RuleSetSrs, plainRuleSetCompat.Options); err != nil {
-			log.Println("ERROR: Cannot write into geoip file:", err)
+			return fmt.Errorf("cannot write into .srs file: %v", err)
 		}
 
 	}
@@ -306,13 +310,13 @@ func generate(fileDataArray []FileData, config Config) error {
 	// Пытаемся создать файл geoip.db
 	outIPs, err := os.Create(config.GeoipFilename)
 	if err != nil {
-		log.Println("ERROR: Cannot create geoip file:", err)
+		return fmt.Errorf("cannot create geoip file: %v", err)
 	}
 	defer outIPs.Close()
 
 	// Сохраняем в файл GeoIP.db полученные IP-адреса
 	if _, err := mmdb.WriteTo(outIPs); err != nil {
-		log.Println("ERROR: Cannot write into geoip file:", err)
+		return fmt.Errorf("cannot write into geoip file: %v", err)
 	}
 
 	return nil

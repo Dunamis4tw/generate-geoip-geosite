@@ -78,8 +78,9 @@ func loadConfigsFromJSON(jsonFile string) (*Config, error) {
 	// Читаем файл
 	data, err := os.ReadFile(jsonFile)
 	if err != nil {
-		return nil, fmt.Errorf("error reading JSON file: %v", err)
+		return nil, fmt.Errorf("config file error reading: %v", err)
 	}
+	logInfo.Printf("config file '%s' successfully read", jsonFile)
 
 	// Переменная для хренения конфига
 	var config Config
@@ -87,8 +88,9 @@ func loadConfigsFromJSON(jsonFile string) (*Config, error) {
 	// Парсим содержимое файла
 	err = json.Unmarshal(data, &config)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing JSON: %v", err)
+		return nil, fmt.Errorf("config file '%s' serialization error: %v", jsonFile, err)
 	}
+	logInfo.Printf("config file '%s' successfully deserialized", jsonFile)
 
 	// Добавляем слеш только если его нет в конце пути
 	if !strings.HasSuffix(config.Path, "/") {
