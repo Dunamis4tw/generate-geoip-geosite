@@ -13,16 +13,18 @@ import (
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/mmdbtype"
 	"github.com/sagernet/sing-box/common/geosite"
+	"github.com/sagernet/sing-box/common/srs"
+	"github.com/sagernet/sing-box/option"
 )
 
 // Rule структура для представления правил в JSON
 type Rule struct {
-	Domain       []string `json:"domain"`
-	DomainSuffix []string `json:"domain_suffix"`
+	Domain       []string `json:"domain,omitempty"`
+	DomainSuffix []string `json:"domain_suffix,omitempty"`
 	// DomainKeyword []string `json:"domain_keyword"`
 	// DomainRegex   []string `json:"domain_regex"`
 	// SourceIPCIDR  []string `json:"source_ip_cidr"`
-	IPCIDR []string `json:"ip_cidr"`
+	IPCIDR []string `json:"ip_cidr,omitempty"`
 }
 
 // RuleSet структура для представления всего JSON файла
@@ -259,15 +261,44 @@ func generate(fileDataArray []FileData, config Config) error {
 			},
 		}
 
+		strIpOrDomain := "domain"
+		if fileData.IsIP {
+			strIpOrDomain = "ip"
+		}
+
 		// Сохраняем rule-set в файл
-		if len(RuleSetIPCIDR) != 0 {
-			if err := SaveRuleSetToFile(ruleSet, config.Path+"ip-"+fileData.Category+".json"); err != nil {
+		if len(ruleSet.Rules[0].IPCIDR) != 0 || len(ruleSet.Rules[0].Domain) != 0 || len(ruleSet.Rules[0].DomainSuffix) != 0 {
+			if err := SaveRuleSetToFile(ruleSet, config.Path+"ruleset-"+strIpOrDomain+"-"+fileData.Category+".json"); err != nil {
 				log.Println("ERROR: Error while saving rule-set:", err)
 			}
-		} else if len(RuleSetDomain) != 0 || len(RuleSetDomainSuffix) != 0 {
-			if err := SaveRuleSetToFile(ruleSet, config.Path+"domain-"+fileData.Category+".json"); err != nil {
-				log.Println("ERROR: Error while saving rule-set:", err)
-			}
+		}
+
+		// Переводим итоговый rule-set в json
+		jsonData, err := json.Marshal(ruleSet)
+		if err != nil {
+			fmt.Println("Ошибка маршализации в JSON:", err)
+		}
+
+		// Создаём переменную S-B для хранения rule-set'ов
+		var plainRuleSetCompat option.PlainRuleSetCompat
+
+		// Конвертируем полученный json функцией sing-box'а
+		if plainRuleSetCompat.UnmarshalJSON(jsonData) != nil {
+			log.Println("ERROR: Json ruleset unmarshalization error:", err)
+		}
+		// Проверяем версию rule-set
+		plainRuleSetCompat.Upgrade()
+
+		// Пытаемся создать .srs файл
+		RuleSetSrs, err := os.Create(config.Path + "ruleset-" + strIpOrDomain + "-" + fileData.Category + ".srs")
+		if err != nil {
+			log.Println("ERROR: cannot create .srs file:", err)
+		}
+		defer RuleSetSrs.Close()
+
+		// Сохраняем в файл GeoIP.db полученные IP-адреса
+		if err := srs.Write(RuleSetSrs, plainRuleSetCompat.Options); err != nil {
+			log.Println("ERROR: Cannot write into geoip file:", err)
 		}
 
 	}
@@ -275,13 +306,13 @@ func generate(fileDataArray []FileData, config Config) error {
 	// Пытаемся создать файл geoip.db
 	outIPs, err := os.Create(config.GeoipFilename)
 	if err != nil {
-		log.Println("ERROR: cannot create geoip file:", err)
+		log.Println("ERROR: Cannot create geoip file:", err)
 	}
 	defer outIPs.Close()
 
 	// Сохраняем в файл GeoIP.db полученные IP-адреса
 	if _, err := mmdb.WriteTo(outIPs); err != nil {
-		log.Println("ERROR: cannot write into geoip file:", err)
+		log.Println("ERROR: Cannot write into geoip file:", err)
 	}
 
 	return nil

@@ -6,3 +6,5 @@ antizapret/*.lst
 antizapret/*.json
 antizapret/*.db
 antizapret/*.tmp
+antizapret/*.srs
+configTest.json
