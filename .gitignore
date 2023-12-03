@@ -8,4 +8,4 @@ antizapret/*.db
 antizapret/*.tmp
 antizapret/*.srs
 configTest.json
-generate-geoip-geosite.exe
+bin
