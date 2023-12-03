@@ -6,27 +6,27 @@
     {
       "url": "https://reestr.rublacklist.net/api/v3/dpi/",
       "contentType": "JsonRublacklistDPI",
-      "category": "RublacklistDPI"
+      "category": "rublacklist_dpi"
     },
     {
       "url": "https://reestr.rublacklist.net/api/v3/domains/",
       "contentType": "JsonListDomains",
-      "category": "RublacklistDomains"
+      "category": "rublacklist_domains"
     },
     {
       "url": "https://reestr.rublacklist.net/api/v3/ct-domains/",
       "contentType": "JsonListDomains",
-      "category": "CensorTracker"
+      "category": "rublacklist_censortracker"
     },
     {
       "url": "https://reestr.rublacklist.net/api/v3/ips/",
       "contentType": "JsonListIPs",
-      "category": "RublacklistIPs"
+      "category": "rublacklist_ips"
     },
     {
       "url": "https://reestr.rublacklist.net/api/v3/disseminators/",
       "contentType": "JsonListDomains",
-      "category": "RublacklistDisseminators"
+      "category": "rublacklist_disseminators"
     }
   ]
 }

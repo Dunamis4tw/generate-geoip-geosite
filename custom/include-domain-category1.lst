@@ -1,3 +1,10 @@
+# All lines starting with # will be ignored. Empty lines are also skipped.
+
+# In DefaultList, you can specify both the domain itself and its subdomains:
+mydomain.net
+*.mydomain.net
+
+# The following lines are for demonstrating the exclusion of domains using the file "custom\exclude-domain-category1.lst"
 domain1.com
 domain2.com
 domain3.com

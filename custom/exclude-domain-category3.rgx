@@ -1,22 +1,22 @@
-# Все домены, заканчивающиеся на domain3.com
+# All domains ending with domain3.com
 .*domain3\.com
 
-# Все поддомены domain4.com
+# All subdomains of domain4.com
 .*.domain4\.com
 
-# Все домены .XYZ
+# All domains with .XYZ
 .*\.xyz
 
-# Любой домен первого уровня
+# Any top-level domain
 domain1\..*
 
 sub[1-3].domain\.com
 
-# Все домены, где встречаются неугодные вам слова
+# All domains where certain undesirable words are present
 .*casino.*
 .*porn.*
 .*hydra.*
 .*hate.*
 
-# Также можно просто указать домен (экранировав при этом точку)
+# You can also specify a domain directly (escaping the dot)
 mydomain2\.net

@@ -1,3 +1,4 @@
+# Category "category3" is intended to demonstrate the exclusion of domains using regular expressions from the file "custom\exclude-domain-category3.rgx"
 domain1.com
 domain2.com
 domain3.com

@@ -7,36 +7,6 @@
       "url": "https://raw.githubusercontent.com/zapret-info/z-i/master/dump.csv",
       "contentType": "CsvDumpAntizapret",
       "category": "antizapret"
-    },
-    {
-      "url": "https://antifilter.download/list/allyouneed.lst",
-      "contentType": "DefaultList",
-      "category": "antifilter_allyouneed"
-    },
-    {
-      "url": "https://antifilter.download/list/domains.lst",
-      "contentType": "DefaultList",
-      "category": "antifilter_domains"
-    },
-    {
-      "url": "https://antifilter.download/list/ip.lst",
-      "contentType": "DefaultList",
-      "category": "antifilter_ip"
-    },
-    {
-      "url": "https://antifilter.download/list/ipresolve.lst",
-      "contentType": "DefaultList",
-      "category": "antifilter_ipresolve"
-    },
-    {
-      "url": "https://antifilter.download/list/ipsum.lst",
-      "contentType": "DefaultList",
-      "category": "antifilter_ipsum"
-    },
-    {
-      "url": "https://antifilter.download/list/subnet.lst",
-      "contentType": "DefaultList",
-      "category": "antifilter_subnet"
     }
   ]
 }
