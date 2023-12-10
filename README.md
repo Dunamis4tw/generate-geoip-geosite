@@ -36,6 +36,10 @@ Generates GeoIP, Geosite and Rule-Set files (used by Sing-Box to configure route
 
 ## How To Use
 
+```bash
+generate-geoip-geosite -i /path/to/input -o /path/to/output
+```
+
 To use, you need to specify the path to the directory containing your lists of domains and IP addresses (`"-i ./path/to/input/directory"`) and the path to the directory where the generated files will be saved (`"-o ./path/to/output/directory"`).
 
 In the directory specified by `"-i ./path/to/input/directory"`, files of the following format should be present: `"{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}"`. During the generation process, these files will be processed as follows:

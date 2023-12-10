@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // CmdLineOptions содержит значения параметров командной строки
@@ -85,6 +86,13 @@ func PrintHelp() {
 	fmt.Println("  -h, --help                      help")
 }
 
+func addTrailingSlash(url string) string {
+	if !strings.HasSuffix(url, "/") {
+		return url + "/"
+	}
+	return url
+}
+
 // ValidateOptions проверяет валидность параметров
 func ValidateOptions(options *CmdLineOptions) error {
 
@@ -97,6 +105,10 @@ func ValidateOptions(options *CmdLineOptions) error {
 	if options.OutputDir == "" {
 		return fmt.Errorf("output directory path is required")
 	}
+
+	// Добавляем в конец "/", если он отсутсвует
+	options.InputDir = addTrailingSlash(options.InputDir)
+	options.OutputDir = addTrailingSlash(options.OutputDir)
 
 	// Если не выбран ни один из параметров, выбираем их все
 	if !options.Generate.GeoIP && !options.Generate.Geosite && !options.Generate.RuleSetJSON && !options.Generate.RuleSetSRS {
