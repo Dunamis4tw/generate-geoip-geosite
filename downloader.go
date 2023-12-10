@@ -9,103 +9,89 @@ import (
 	"os"
 	"regexp"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 func Downloader(configs *Config) error {
-
-	// Проверяем наличие папки
-	if _, err := os.Stat(configs.Path); os.IsNotExist(err) {
-		// Если папки нет, создаем её
-		err := os.MkdirAll(configs.Path, os.ModePerm)
+	// Проверяем наличие директории InputDir
+	if _, err := os.Stat(configs.InputDir); os.IsNotExist(err) {
+		// Если её нет, создаем
+		err := os.MkdirAll(configs.InputDir, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("failed to create directory '%s': %v", configs.Path, err)
+			return fmt.Errorf("failed to create directory '%s': %v", configs.InputDir, err)
 		}
-		logInfo.Printf("The directory '%s' was missing, but it was created:", configs.Path)
+		logInfo.Printf("the directory '%s' was missing, but it was created:", configs.InputDir)
 	}
 
+	// Перебираем источники
 	for _, source := range configs.Sources {
 
-		var StartFilename string
+		// Определяем тип источника (для названия файла)
+		StartFilename := "include"
 		if source.IsExclude {
 			StartFilename = "exclude"
-		} else {
-			StartFilename = "include"
 		}
+		// Собираем имена файлов
+		var IpFilename = configs.InputDir + StartFilename + "-ip-" + source.Category + ".lst"
+		var DomainFilename = configs.InputDir + StartFilename + "-domain-" + source.Category + ".lst"
 
-		if len(source.IpFilename) == 0 {
-			source.IpFilename = configs.Path + StartFilename + "-ip-" + source.Category + ".lst"
-		}
-		if len(source.DomainFilename) == 0 {
-			source.DomainFilename = configs.Path + StartFilename + "-domain-" + source.Category + ".lst"
-		}
-		if len(source.DownloadedFilename) == 0 {
-			source.DownloadedFilename = configs.Path + uuid.New().String() + ".tmp"
-		}
-
-		logInfo.Printf("Downloading the file '%s' to '%s'...", source.URL, source.DownloadedFilename)
-		err := downloadFile(source.URL, source.DownloadedFilename)
+		// Cкачиваем файл
+		logInfo.Printf("downloading the file '%s'...", source.URL)
+		data, err := downloadURL(source.URL)
 		if err != nil {
-			return fmt.Errorf("ERROR: Error downloading file: %v", err)
+			return fmt.Errorf("error downloading file: %v", err)
 		}
 
-		data, err := os.ReadFile(source.DownloadedFilename)
-		if err != nil {
-			return fmt.Errorf("ERROR: Error reading file: %v", err)
-		}
-
+		// Парсим скачанный файл в зависимости от указанного source.ContentType
+		logInfo.Printf("parsing the file...")
 		parserFunc, ok := parsers[source.ContentType]
 		if !ok {
 			parserFunc = parseDefaultList
-			return fmt.Errorf("ERROR: Invalid data handler type: %s", source.ContentType)
+			return fmt.Errorf("invalid data handler type: %s", source.ContentType)
 		}
-
-		logInfo.Printf("Parsing the file '%s'...", source.DownloadedFilename)
 		ipAddresses, domains := parserFunc(string(data))
 
+		// Если были распарсены IP-адреса, то сохраняем их в файл
 		if len(ipAddresses) != 0 {
-			err = writeToFile(ipAddresses, source.IpFilename)
+			err = writeToFile(ipAddresses, IpFilename)
 			if err != nil {
 				return fmt.Errorf("error writing IP addresses to file: %v", err)
 			}
-			logInfo.Printf("Parsed IP addresses are written in '%s'", source.IpFilename)
+			logInfo.Printf("parsed IP addresses are written in '%s'", IpFilename)
 		}
 
+		// Если были распарсены Домены, то сохраняем их в файл
 		if len(domains) != 0 {
-			err = writeToFile(domains, source.DomainFilename)
+			err = writeToFile(domains, DomainFilename)
 			if err != nil {
 				return fmt.Errorf("error writing domains to file: %v", err)
 			}
-			logInfo.Printf("Parsed domains are written in '%s'", source.DomainFilename)
+			logInfo.Printf("parsed domains are written in '%s'", DomainFilename)
 		}
 
-		err = os.Remove(source.DownloadedFilename)
-		if err != nil {
-			return fmt.Errorf("ERROR: Error removing file: %v", err)
-		}
 	}
 	return nil
 }
 
-func downloadFile(url, fileName string) error {
-	response, err := http.Get(url)
+func downloadURL(url string) ([]byte, error) {
+	// Получаем ответ от get запроса на указанный url
+	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer response.Body.Close()
+	defer resp.Body.Close()
 
-	data, err := io.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(fileName, data, 0644)
-	if err != nil {
-		return err
+	// Если ответ не 200, выдаём ошибку
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP response error: %s", resp.Status)
 	}
 
-	return nil
+	// Читаем ответ в переменную data
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func parseJsonListDomains(jsonData string) ([]string, []string) {
@@ -129,6 +115,7 @@ func parseJsonListIPs(jsonData string) ([]string, []string) {
 }
 
 func parseJsonRublacklistDPI(jsonData string) ([]string, []string) {
+	// Создаём стркутуру
 	type Data struct {
 		Domains     []string `json:"domains"`
 		Name        string   `json:"name"`
@@ -137,6 +124,7 @@ func parseJsonRublacklistDPI(jsonData string) ([]string, []string) {
 		} `json:"restriction"`
 	}
 
+	// Парсим json в структуру
 	var data []Data
 	err := json.Unmarshal([]byte(jsonData), &data)
 	if err != nil {
@@ -144,6 +132,7 @@ func parseJsonRublacklistDPI(jsonData string) ([]string, []string) {
 		return nil, nil
 	}
 
+	// Добавлям домены в общий список
 	var domains []string
 	for _, item := range data {
 		domains = append(domains, item.Domains...)
@@ -158,21 +147,21 @@ func parseCsvDumpAntizapret(input string) ([]string, []string) {
 
 	lines := strings.Split(input, "\n")
 	for _, line := range lines {
-		// Разделяем строку на части по символу ";"
-		parts := strings.Split(line, ";")
-		if len(parts) == 1 {
+		// Разделяем строку на столбцы по символу ";"
+		columns := strings.Split(line, ";")
+
+		// Пропускаем первую строку (в ней один столбец)
+		if len(columns) == 1 {
 			continue
 		}
 
-		ips := strings.Split(parts[0], "|")
-		// Извлекаем IP-адреса из первой части
-		// ipMatches := regexp.MustCompile(`(?:\d{1,3}\.){3}\d{1,3}|[0-9a-fA-F:]+`).FindAllString(parts[0], -1)
+		// Извлекаем IP-адреса из первого столбца
+		ips := strings.Split(columns[0], "|")
 		ipAddresses = append(ipAddresses, ips...)
 
-		// Если есть вторая часть, извлекаем домены из нее
-		if len(parts) > 1 {
-			domainMatches := strings.Split(parts[1], "|")
-			// domainMatches := regexp.MustCompile(`\*?[^\s;|]+`).FindAllString(parts[1], -1)
+		// Если есть второй столбца, извлекаем домены из нее
+		if len(columns) > 1 {
+			domainMatches := strings.Split(columns[1], "|")
 			domains = append(domains, domainMatches...)
 		}
 	}
@@ -184,70 +173,44 @@ func parseCsvDumpAntizapret(input string) ([]string, []string) {
 	return ipAddresses, domains
 }
 
-// func isDomain(s string) bool {
-// 	// Регулярное выражение для проверки домена
-// 	regex := `^(([a-zA-Z0-9А-яёЁ\*]|[a-zA-Z0-9А-яёЁ][a-zA-Z0-9А-яёЁ\-]*[a-zA-Z0-9А-яёЁ])\.)*([A-Za-z0-9А-яёЁ]|[A-Za-z0-9А-яёЁ][A-Za-z0-9А-яёЁ\-]*[A-Za-z0-9А-яёЁ])$`
-
-// 	match, _ := regexp.MatchString(regex, s)
-// 	return match
-// }
+var (
+	rgxIPv4   = regexp.MustCompile(`^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(/(3[0-2]|2[0-9]|1[0-9]|[0-9]))?$`)
+	rgxIPv6   = regexp.MustCompile(`^s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:)))(%.+)?s*(\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8]))?$`)
+	rgxDomain = regexp.MustCompile(`^(([a-zA-Z0-9А-яёЁ\*]|[a-zA-Z0-9А-яёЁ][a-zA-Z0-9А-яёЁ\-]*[a-zA-Z0-9А-яёЁ])\.)*([A-Za-z0-9А-яёЁ]|[A-Za-z0-9А-яёЁ][A-Za-z0-9А-яёЁ\-]*[A-Za-z0-9А-яёЁ])$`)
+)
 
 func parseDefaultList(input string) ([]string, []string) {
 	var ipAddresses []string
 	var domains []string
 
 	lines := strings.Split(input, "\n")
-	// startTime := time.Now()
-	// lastIndex := 0
-
-	var rgxIPv4 = regexp.MustCompile(`^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(/(3[0-2]|2[0-9]|1[0-9]|[0-9]))?$`)
-	var rgxIPv6 = regexp.MustCompile(`^s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:)))(%.+)?s*(\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8]))?$`)
-	var rgxDomain = regexp.MustCompile(`^(([a-zA-Z0-9А-яёЁ\*]|[a-zA-Z0-9А-яёЁ][a-zA-Z0-9А-яёЁ\-]*[a-zA-Z0-9А-яёЁ])\.)*([A-Za-z0-9А-яёЁ]|[A-Za-z0-9А-яёЁ][A-Za-z0-9А-яёЁ\-]*[A-Za-z0-9А-яёЁ])$`)
 
 	for _, line := range lines {
 
-		// Извлекаем IP-адреса из первой части
-		if rgxIPv4.MatchString(line) {
-			ipAddresses = append(ipAddresses, line)
-			continue
-		}
-
-		// Извлекаем IP-адреса из первой части
-		if rgxIPv6.MatchString(line) {
-			ipAddresses = append(ipAddresses, line)
-			continue
-		}
-
-		// Извлекаем IP-адреса из первой части
+		// Извлекаем домен
 		if rgxDomain.MatchString(line) {
 			domains = append(domains, line)
 			continue
 		}
 
-		// // Извлекаем IP-адреса из первой части
-		// ipMatches := rgxIPv4.FindAllString(line, -1)
-		// if len(ipMatches) == 0 {
-		// 	ipMatches = rgxIPv6.FindAllString(line, -1)
-		// }
-		// if len(ipMatches) != 0 {
-		// 	ipAddresses = append(ipAddresses, ipMatches...)
-		// } else {
+		// Извлекаем IPv4-адрес
+		if rgxIPv4.MatchString(line) {
+			ipAddresses = append(ipAddresses, line)
+			continue
+		}
 
-		// 	domainMatches := rgxDomain.FindAllString(line, -1)
-		// 	if len(domainMatches) != 0 {
-		// 		domains = append(domains, domainMatches...)
-		// 	}
-		// }
+		// Извлекаем IPv6-адрес
+		if rgxIPv6.MatchString(line) {
+			ipAddresses = append(ipAddresses, line)
+			continue
+		}
 
-		// if time.Since(startTime).Seconds() > 1 {
-		// 	var speed = float64(i-lastIndex) / float64(time.Since(startTime).Seconds())
-		// 	var prog = float64(i*100) / float64(len(lines))
-		// 	fmt.Printf("\rParse speed: %.2f lines in second (%.2f%%)\n", speed, prog)
-		// 	startTime = time.Now()
-		// 	lastIndex = i
-		// }
+		// Если строка не была комментарием или пустой строкой, выводим предупреждение, что не удалось распарсить строку
+		// (так как такие строки отсекаются регулярками, нет смысла делать проверку перед регулярками)
+		if strings.TrimSpace(line) != "" && !strings.HasPrefix(line, "#") {
+			logWarn.Printf("Failed to parse '%s' as an IPv4, IPv6, or domain address", line)
+		}
 	}
-	// fmt.Println()
 
 	// Убираем дубликаты
 	ipAddresses = uniqueSlice(ipAddresses)
@@ -256,6 +219,7 @@ func parseDefaultList(input string) ([]string, []string) {
 	return ipAddresses, domains
 }
 
+// uniqueSlice удаляет дубликаты
 func uniqueSlice(slice []string) []string {
 	uniqueMap := make(map[string]bool)
 	uniqueSlice := make([]string, 0)

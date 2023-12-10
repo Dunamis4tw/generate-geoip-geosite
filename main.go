@@ -15,40 +15,41 @@ func main() {
 	// Используем функцию из cmdlineparser для парсинга параметров
 	options := ParseCommandLine()
 
-	// Если указан флаг для вывода справки, выводим справку и завершаем программу
-	if options.ShowHelp {
-		PrintHelp()
-		os.Exit(0)
+	// Добавляем параметры в основной конфиг файл
+	var config = Config{
+		InputDir:   options.InputDir,
+		OutputDir:  options.OutputDir,
+		SourceFile: options.SourceFile,
+		Generate:   options.Generate,
+		Sources:    []Source{},
 	}
 
-	// Валидируем параметры
-	err := ValidateOptions(options)
-	if err != nil {
-		PrintHelp()
-		logError.Fatal(err)
+	// Если указан файл с источникам, то
+	if len(config.SourceFile) != 0 {
+		// Читаем источники
+		logInfo.Print("==== READING SOURCE FILE ====")
+		Sources, err := loadSourcesFromJSON(config.SourceFile)
+		if err != nil {
+			logError.Fatal(err)
+		}
+		config.Sources = Sources
+		// Скачиваем их
+		logInfo.Print("==== DOWNLOADING ====")
+		if err := Downloader(&config); err != nil {
+			logError.Fatal(err)
+		}
 	}
 
-	// options.ConfigPath = "./configCustom.json" // For DEBUG
-
-	logInfo.Print("==== READING CONFIG FILE ====")
-	configs, err := loadConfigsFromJSON(options.ConfigPath)
-	if err != nil {
-		logError.Fatal(err)
-	}
-
-	logInfo.Print("==== DOWNLOADING ====")
-	if err := Downloader(configs); err != nil {
-		logError.Fatal(err)
-	}
-
+	// Читаем скачанные файлы + те, которые уже были
 	logInfo.Print("==== READING FILE LISTS ====")
-	fileDataArray, err := processFiles(configs.Path)
+	fileDataArray, err := processFiles(config.InputDir)
 	if err != nil {
 		logError.Fatal(err)
 	}
 
-	logInfo.Print("==== GENERATING GEOSITE & GEOIP ====")
-	err = generate(fileDataArray, *configs)
+	// Генерируем итоговые файлы (GeoIP, Geosite, Rule-Set)
+	logInfo.Print("==== GENERATING GEOSITE & GEOIP & RULE-SET ====")
+	err = generate(fileDataArray, config)
 	if err != nil {
 		logError.Fatal(err)
 	}

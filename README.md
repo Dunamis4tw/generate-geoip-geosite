@@ -34,48 +34,66 @@ Generates GeoIP, Geosite and Rule-Set files (used by Sing-Box to configure route
 - Генерация Rule-Set: программа способна генерировать новые Rule-Set в форматах .json и .srs (пришли на замену Geosite и GeoIP в Sing-Box начиная с версии v1.8.0-альфа).
 -->
 
-## Usage
+## How To Use
 
-To use this program, you can run it from the command line with the following options:
+To use, you need to specify the path to the directory containing your lists of domains and IP addresses (`"-i ./path/to/input/directory"`) and the path to the directory where the generated files will be saved (`"-o ./path/to/output/directory"`).
 
-```bash
-generate-geoip-geosite -c /path/to/config.json
-```
+In the directory specified by `"-i ./path/to/input/directory"`, files of the following format should be present: `"{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}"`. During the generation process, these files will be processed as follows:
 
-## Build
+- `{include/exclude}`. IP addresses and domains in a file with "include" in the name will be included in the final file during generation. IP addresses and domains in a file with "exclude" in the name will be excluded from the final file during generation. In other words, all matches of IP addresses and domains in "include" files and "exclude" files of the same category will not be included in the final file.
+- `{ip/domain}` in the name indicates that the file contains IP addresses or domains, respectively.
+- `{category_name}` is any category name. A category allows combining multiple domains or IP addresses into one list, which appears in the final GeoIP and Geosite files. In the case of Rule-set, each category will create one Rule-set. The same category name can be given for IP addresses and domains, resulting in two different categories (for IP and for domains).
+- `{lst/rgx}` is the file extension, indicating the format of the entries in the file: a regular string or a regular expression. Currently, it makes sense to use it for excluding domains.
 
-Given that the Go Language compiler (version 1.11 or greater is required) is installed, you can build it with:
+<!-- 
+## Как использовать
 
-```bash
-go get github.com/Dunamis4tw/generate-geoip-geosite
-cd $GOPATH/src/github.com/Dunamis4tw/generate-geoip-geosite
-go build .
-```
+Для использования, вам нужно указать путь к каталогу, в котором хранятся ваши списки доменов и ip адресов (`-i ./path/to/input/directory`), и путь к каталогу, куда будут сохраняться генерируемые файлы (`-o ./path/to/output/directory`).
+В директории по пути `./path/to/input/directory` должны лежать файлы вида `{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}`, которые во время генерации будут обрабатываться следующим образом:
+- IP-адреса и домены в файле с "include" в названии будут включены в итоговый файл во время генерации.
+- IP-адреса и домены в файле с "exclude" в названии будут исключены из итогового файла во время генерации. То есть, все совпадения ip-адресов и доменов в "include" файлах и "exclude" файлах одной категории не будут включены в итоговый файл.
+- {ip/domain} в названии означает, что файл содержит ip адреса или домены, соотвественно.
+- {category_name} - любое имя категории. Категория позволяет объединить несколько доменов или ip-адресов в один список, который фигурирует в итоговых GeoIP и Geosite. В случае с Rule-set, каждая категория создаст один Rule-set. Одно и то же имя категории может быть дано для ip-адресов и для доменов, в итоге всё равно будет две разных категории (для ip и для доменов).
+- {lst/rgx} - расширение файла, означает в каком виде представлены записи в файле: обычная строка или регулярное выражение. На данный момент есть смысл использовать для исключения доменов.
+-->
 
-## Configuration File Description
+To always have up-to-date GeoIP, Geosite, and Rule-set files, functionality for downloading files and subsequent parsing into `{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}` format files has been added to the program. The list of files to download is specified in the source file. To specify the path to the source file, add the `-s ./path/to/source.json` flag. Below are ready-made source files for downloading up-to-date lists of IP addresses and domains useful for users in Russia.
 
-The configuration file (`config.json`) for the application is designed to manage various sources of data for building and updating GeoIP and Geosite files. Below is a detailed description of each field in the JSON configuration file.
+<!--
+Для того, чтобы всегда иметь актуальные GeoIP, Geosite и Rule-set'ы, в программу был добавлен функционал скачивания файлов и их последующего парсинга в файлы формата `{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}`. Список файлов, необходимых для скачивания указываются в source-файле. Чтобы указать путь к source-файлу, добавьте флаг `-s ./path/to/source.json`. Ниже представлены уже готовые source-файлы, для скачивания актуальных списков ip-адресов и доменов, полезных для пользователей из РФ.
+-->
 
-### Config Fields
+### Source File Examples
 
-1. **path** (string, mandatory)
-   - *Description*: The base path where the application will store its files.
-   - *Default Value*: "./"
+The project contains example source files:
 
-2. **geositeFilename** (string, optional)
-   - *Description*: Output Geosite file name.
-   - *Default Value*: "./geosite.db"
+- **`sourceAntifilter.json`**
+  - Downloads lists of IP addresses and domains provided by [Antifilter](https://antifilter.download/), then categorizes each list.
 
-3. **geoipFilename** (string, optional)
-   - *Description*: Output GeoIP file name.
-   - *Default Value*: "./geoip.db"
+- **`sourceRublacklist.json`**
+  - Downloads lists of IP addresses and domains provided by [Roskomsvoboda](https://reestr.rublacklist.net/ru/article/api/), then categorizes each list.
 
-4. **sources** (array of Source, optional)
-   - *Description*: An array of sources containing information about the data to be fetched and processed. If not specified, existing files at "path" will be processed.
+- **`sourceAntizapret.json`**
+  - Downloads lists of IP addresses and domains provided by [zapret-info/z-i](https://github.com/zapret-info/z-i). Unnecessary domains are then excluded using regular expressions from the file `antizapret\exclude-domain-antizapret.rgx` (Slightly modified [exclude-regexp-dist.awk](https://bitbucket.org/anticensority/antizapret-pac-generator-light/src/master/config/exclude-regexp-dist.awk)). The result is a list of IP addresses and domains roughly corresponding to the Antizapret lists.
 
-### Source Fields
+<!--
+## Примеры конфигурации
 
-Each source within the "Sources" array is defined by the following fields:
+Проект содержит примеры файлов конфигурации:
+
+- **`configAntifilter.json`**
+  - Скачивает списки IP-адресов и Доменов, предоставленные [Antifilter](https://antifilter.download/), разбивает каждый из списков на категории.
+
+- **`configRublacklist.json`**
+  - Скачивает списки IP-адресов и Доменов, предоставленные [Roskomsvoboda](https://reestr.rublacklist.net/ru/article/api/), разбивает каждый из списков на категории.
+
+- **`configAntizapret.json`**
+  - Скачивает списки IP-адресов и Доменов, предоставленные [zapret-info/z-i](https://github.com/zapret-info/z-i). Затем из них исключаются ненужные домены регулярными выражениями из файла `antizapret\exclude-domain-antizapret.rgx` (Немного изменённый [exclude-regexp-dist.awk](https://bitbucket.org/anticensority/antizapret-pac-generator-light/src/master/config/exclude-regexp-dist.awk)). В итоге получается список IP-адресов и Доменов, примерно соотвествующий спискам Antizapret.
+-->
+
+## Source File Description
+
+The source file (`source.json`) is intended to provide the program with URLs containing files that include domains and IP addresses, along with parsing information for each file. The JSON file is structured as an array with a "Source" object, defined by the following fields:
 
 1. **url** (string, mandatory)
    - *Description*: The URL from which the data will be fetched.
@@ -100,48 +118,29 @@ Each source within the "Sources" array is defined by the following fields:
    - *Description*: If set to true, the data from this source will be included; otherwise, it will be excluded.
    - *Default Value*: false
 
-5. **downloadedFilename** (string, optional)
-   - *Description*: The filename used to save temporary downloaded data.
-   - *Default Value*: "{random_UUID}.tmp"
+## Build
 
-6. **ipFilename** (string, optional)
-   - *Description*: The filename for storing IP-related data.
-   - *Default Value*: "{include/exclude}-ip-{category_name}.lst"
+Given that the Go Language compiler (version 1.11 or greater is required) is installed, you can build it with:
 
-7. **domainFilename** (string, optional)
-   - *Description*: The filename for storing domain-related data.
-   - *Default Value*: "{include/exclude}-domain-{category_name}.lst"
+```bash
+go get github.com/Dunamis4tw/generate-geoip-geosite
+cd $GOPATH/src/github.com/Dunamis4tw/generate-geoip-geosite
+go build .
+```
 
-## Config Examples
+## Flags
 
-The project contains example configuration files:
+- **-i, --inputDir string:** Set the path to the input directory for listing files (`{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}`).
+- **-o, --outputDir string:** Set the path to the output directory for GeoIP, Geosite, Rule-set files (`.db`, `rule-set.json`, `rule-set.srs`).
+- **-s, --sources string:** Set the path to the `sources.json` file containing an array of URLs for download.
+- **--gen-geoip:** Generate GeoIP file.
+- **--gen-geosite:** Generate Geosite file.
+- **--gen-rule-set-json:** Generate Rule-Set JSON files.
+- **--gen-rule-set-srs:** Generate Rule-Set SRS files.
+- **-h, --help:** Help.
 
-- **`configAntifilter.json`**
-  - Downloads lists of IP addresses and domains provided by [Antifilter](https://antifilter.download/), then categorizes each list.
-
-- **`configRublacklist.json`**
-  - Downloads lists of IP addresses and domains provided by [Roskomsvoboda](https://reestr.rublacklist.net/ru/article/api/), then categorizes each list.
-
-- **`configAntizapret.json`**
-  - Downloads lists of IP addresses and domains provided by [zapret-info/z-i](https://github.com/zapret-info/z-i). Unnecessary domains are then excluded using regular expressions from the file `antizapret\exclude-domain-antizapret.rgx` (Slightly modified [exclude-regexp-dist.awk](https://bitbucket.org/anticensority/antizapret-pac-generator-light/src/master/config/exclude-regexp-dist.awk)). The result is a list of IP addresses and domains roughly corresponding to the Antizapret lists.
-
-- **`configCustom.json`**
-  - A configuration file with custom lists of IP addresses and domains. You only need to specify the path to the directory where your lists are stored in files named "{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}".
+*Note: If none of the four flags (`--gen-geoip`, `--gen-geosite`, `--gen-rule-set-json`, `--gen-rule-set-srs`) are specified, all four types of final files will be generated. If at least one flag is specified, only the files corresponding to the specified flags will be generated.*
 
 <!--
-## Примеры конфигурации
-
-Проект содержит примеры файлов конфигурации:
-
-- **`configAntifilter.json`**
-  - Скачивает списки IP-адресов и Доменов, предоставленные [Antifilter](https://antifilter.download/), разбивает каждый из списков на категории.
-
-- **`configRublacklist.json`**
-  - Скачивает списки IP-адресов и Доменов, предоставленные [Roskomsvoboda](https://reestr.rublacklist.net/ru/article/api/), разбивает каждый из списков на категории.
-
-- **`configAntizapret.json`**
-  - Скачивает списки IP-адресов и Доменов, предоставленные [zapret-info/z-i](https://github.com/zapret-info/z-i). Затем из них исключаются ненужные домены регулярными выражениями из файла `antizapret\exclude-domain-antizapret.rgx` (Немного изменённый [exclude-regexp-dist.awk](https://bitbucket.org/anticensority/antizapret-pac-generator-light/src/master/config/exclude-regexp-dist.awk)). В итоге получается список IP-адресов и Доменов, примерно соотвествующий спискам Antizapret.
-
-- **`configCustom.json`**
-  - Конфиг файл со своими списками IP-адресов и Доменов. Вы лишь указываете путь до директории, где хранятся ваши списки в файлах с названием "{include/exclude}-{ip/domain}-{category_name}.{lst/rgx}".
+*Примечаение: Если ни один из четырёх флагов (`--gen-geoip`, `--gen-geosite`, `--gen-rule-set-json`, `--gen-rule-set-srs`) не указан, будут генерироваться все четыре типа финальных файла. Если указан хотя бы один флаг, то будут генерироваться только те файлы, которые были заданы соответствующими флагами.*
 -->

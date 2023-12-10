@@ -4,34 +4,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 )
 
 type Config struct {
-	Path            string   `json:"path" default:"./"`
-	GeositeFilename string   `json:"geositeFilename" default:"./geosite.db"`
-	GeoipFilename   string   `json:"geoipFilename" default:"./geoip.db"`
-	Sources         []Source `json:"sources"`
+	SourceFile string          // Json-файл со списком ссылок на списки
+	Sources    []Source        // Содержимое файла SourceFile
+	InputDir   string          // Директория, откуда будут браться списки для генерации (сюда же будут качаться файлы)
+	OutputDir  string          // Директория, куда будут складываться сгенерированный файлы
+	Generate   GenerateOptions // Массив с выбранными генерируемыми файлами
 }
 
 // Source структура с информацией о источнике списка
 type Source struct {
-	URL                string      `json:"url"`
-	Category           string      `json:"category"`
-	ContentType        ContentType `json:"contentType"`
-	IsExclude          bool        `json:"isExclude"` // false = exclude, true = include. Default: false
-	DownloadedFilename string      `json:"downloadedFilename"`
-	IpFilename         string      `json:"ipFilename"`
-	DomainFilename     string      `json:"domainFilename"`
-	// ListType      ListType    `json:"listType"`
-	// CheckValidity bool        `json:"checkValidity"` // Если true - необходима проверка ip и доменов на валидность, если false вставлять как есть. Default: false
+	URL         string      `json:"url"`         // Ссылка на скачиваемый файл
+	Category    string      `json:"category"`    // Название категории
+	ContentType ContentType `json:"contentType"` // Как парсить файл
+	IsExclude   bool        `json:"isExclude"`   // Список с исключением или включением. false = exclude, true = include. Default: false
+	// DownloadedFilename string      `json:"downloadedFilename"` // Имя временного файла для скачивания
+	// IpFilename         string      `json:"ipFilename"`         // Имя распарсенного файла с IP-адресами
+	// DomainFilename     string      `json:"domainFilename"`     // Имя распарсенного файла с Доменами
 }
 
 // ContentType перечисление для определения типа обработчика данных
 type ContentType string
-
-// // ContentType перечисление для определения типа обработчика данных
-// type ListType string
 
 // ParserFunc функция для обработки данных
 type ParserFunc func(input string) ([]string, []string)
@@ -52,50 +47,24 @@ const (
 	JsonListIPs        ContentType = "JsonListIPs"        // JSON файл со списком IP-адресов (Например: ["1.1.1.1","2.2.2.2","3.3.3.3"])
 )
 
-// const (
-// 	Ip     ListType = "ip"
-// 	Domain ListType = "domain"
-// 	Mixed  ListType = "mixed"
-// )
-
-// func loadConfigsFromJSON(jsonFile string) ([]Config, error) {
-// 	data, err := os.ReadFile(jsonFile)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("ошибка при чтении JSON-файла: %v", err)
-// 	}
-
-// 	var configs []Config
-// 	err = json.Unmarshal(data, &configs)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("ошибка при разборе JSON: %v", err)
-// 	}
-// 	// fmt.Println(configs[0].ListType)
-// 	return configs, nil
-// }
-
-// loadConfigsFromJSON читает файл jsonFile и возвращает заполненную содержимым файла структуру Config
-func loadConfigsFromJSON(jsonFile string) (*Config, error) {
+func loadSourcesFromJSON(jsonFile string) ([]Source, error) {
 	// Читаем файл
 	data, err := os.ReadFile(jsonFile)
 	if err != nil {
-		return nil, fmt.Errorf("config file error reading: %v", err)
+		return nil, fmt.Errorf("error reading sources file: %v", err)
 	}
-	logInfo.Printf("config file '%s' successfully read", jsonFile)
+	logInfo.Printf("sources file '%s' successfully read", jsonFile)
 
-	// Переменная для хренения конфига
-	var config Config
+	// Переменная для хранения массива Source
+	var sources []Source
 
 	// Парсим содержимое файла
-	err = json.Unmarshal(data, &config)
+	err = json.Unmarshal(data, &sources)
 	if err != nil {
-		return nil, fmt.Errorf("config file '%s' serialization error: %v", jsonFile, err)
+		return nil, fmt.Errorf("sources file '%s' deserialization error: %v", jsonFile, err)
 	}
-	logInfo.Printf("config file '%s' successfully deserialized", jsonFile)
+	logInfo.Printf("sources file '%s' successfully deserialized", jsonFile)
 
-	// Добавляем слеш только если его нет в конце пути
-	if !strings.HasSuffix(config.Path, "/") {
-		config.Path += "/"
-	}
-
-	return &config, nil
+	// Возвращаем массив Source
+	return sources, nil
 }
