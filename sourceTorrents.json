@@ -1,0 +1,12 @@
+[
+    {
+      "url": "https://raw.githubusercontent.com/im-sm/Pi-hole-Torrent-Blocklist/main/all-torrent-trackres.txt",
+      "contentType": "DefaultList",
+      "category": "torrent_trackres"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/im-sm/Pi-hole-Torrent-Blocklist/main/all-torrent-websites.txt",
+      "contentType": "DefaultList",
+      "category": "torrent_websites"
+    }
+]
