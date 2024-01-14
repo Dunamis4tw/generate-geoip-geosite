@@ -37,6 +37,7 @@ var parsers = map[ContentType]ParserFunc{
 	JsonRublacklistDPI: parseJsonRublacklistDPI,
 	JsonListDomains:    parseJsonListDomains,
 	JsonListIPs:        parseJsonListIPs,
+	HostsFile:          parseHostsFile,
 }
 
 const (
@@ -45,6 +46,7 @@ const (
 	JsonRublacklistDPI ContentType = "JsonRublacklistDPI" // JSON файл от Роскомсвободы (Rublacklist) со списком доменов, заблокированных по DPI
 	JsonListDomains    ContentType = "JsonListDomains"    // JSON файл со списком доменов (Например: ["dom1.com","dom2.com","dom3.com"])
 	JsonListIPs        ContentType = "JsonListIPs"        // JSON файл со списком IP-адресов (Например: ["1.1.1.1","2.2.2.2","3.3.3.3"])
+	HostsFile          ContentType = "HostsFile"          // Hosts файл со списком IP-адресов и доменов
 )
 
 func loadSourcesFromJSON(jsonFile string) ([]Source, error) {

@@ -219,6 +219,53 @@ func parseDefaultList(input string) ([]string, []string) {
 	return ipAddresses, domains
 }
 
+func parseHostsFile(input string) ([]string, []string) {
+	var ips []string
+	var domains []string
+
+	scanner := bufio.NewScanner(strings.NewReader(input))
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Пропускаем пустые строки и комментарии
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "!") {
+			continue
+		}
+
+		// Разбиваем строку на слова
+		words := strings.Fields(line)
+
+		// Если в строке два слова
+		if len(words) == 2 {
+			var ip = words[0]
+			var domain = words[1]
+
+			// Добавляем IP, есом он не адрес вида 127.0.0.1, 0.0.0.0, ::1 и т.п.
+			if !isLoopbackIP(ip) {
+				ips = append(ips, ip)
+			}
+
+			// Добавялем домен, если он не localhost
+			if domain != "localhost" {
+				domains = append(domains, domain)
+			}
+		}
+	}
+	return ips, domains
+}
+
+// Проверяем, является ли переданный IP адрес "зацикленным" (loopback)
+func isLoopbackIP(ip string) bool {
+	loopbackPatterns := []string{"127.", "0.0.0.0", "::1"}
+	for _, pattern := range loopbackPatterns {
+		if strings.HasPrefix(ip, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
 // uniqueSlice удаляет дубликаты
 func uniqueSlice(slice []string) []string {
 	uniqueMap := make(map[string]bool)
