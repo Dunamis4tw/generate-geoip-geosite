@@ -8,5 +8,6 @@ antizapret/*.json
 antizapret/*.db
 antizapret/*.tmp
 antizapret/*.srs
+torrents
 sourceTest.json
 bin
