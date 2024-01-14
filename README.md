@@ -73,15 +73,19 @@ The project contains example source files:
 
 - **`sourceAdAway.json`**
   - Downloads lists of domains provided by [AdAway](https://4pda.to/forum/index.php?showtopic=275091&view=findpost&p=89665467), then categorizes each list.
+  - Use: `generate-geoip-geosite -s sourceAdAway.json -i ./adaway -o ./adaway`
 
 - **`sourceAntifilter.json`**
   - Downloads lists of IP addresses and domains provided by [Antifilter](https://antifilter.download/), then categorizes each list.
+  - Use: `generate-geoip-geosite -s sourceAntifilter.json -i ./antifilter -o ./antifilter`
 
 - **`sourceRublacklist.json`**
   - Downloads lists of IP addresses and domains provided by [Roskomsvoboda](https://reestr.rublacklist.net/ru/article/api/), then categorizes each list.
+  - Use: `generate-geoip-geosite -s sourceRublacklist.json -i ./rublacklist -o ./rublacklist`
 
 - **`sourceAntizapret.json`**
   - Downloads lists of IP addresses and domains provided by [zapret-info/z-i](https://github.com/zapret-info/z-i). Unnecessary domains are then excluded using regular expressions from the file `antizapret\exclude-domain-antizapret.rgx` (Slightly modified [exclude-regexp-dist.awk](https://bitbucket.org/anticensority/antizapret-pac-generator-light/src/master/config/exclude-regexp-dist.awk)). The result is a list of IP addresses and domains roughly corresponding to the Antizapret lists.
+  - Use: `generate-geoip-geosite -s sourceAntizapret.json -i ./antizapret -o ./antizapret`
 
 <!--
 ## Примеры конфигурации
