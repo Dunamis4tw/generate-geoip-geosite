@@ -87,6 +87,10 @@ The project contains example source files:
   - Downloads lists of IP addresses and domains provided by [zapret-info/z-i](https://github.com/zapret-info/z-i). Unnecessary domains are then excluded using regular expressions from the file `antizapret\exclude-domain-antizapret.rgx` (Slightly modified [exclude-regexp-dist.awk](https://bitbucket.org/anticensority/antizapret-pac-generator-light/src/master/config/exclude-regexp-dist.awk)). The result is a list of IP addresses and domains roughly corresponding to the Antizapret lists.
   - Use: `generate-geoip-geosite -s sourceAntizapret.json -i ./antizapret -o ./antizapret`
 
+- **`sourceTorrents.json`**
+  - Downloads lists domains provided by [github.com/SM443](https://github.com/SM443/Pi-hole-Torrent-Blocklist), then categorizes each list.
+  - Use: `generate-geoip-geosite -s sourceTorrents.json -i ./torrents -o ./torrents`
+
 <!--
 ## Примеры конфигурации
 
