@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set VERSION=1.1.1
+set VERSION=1.2.0
 set OUTPUT_DIR=bin
 set BINARY_NAME=generate-geoip-geosite
 
