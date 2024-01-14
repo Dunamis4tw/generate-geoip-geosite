@@ -1,0 +1,32 @@
+[
+    {
+      "url": "https://schakal.ru/hosts/hosts.txt",
+      "contentType": "HostsFile",
+      "category": "adaway_hosts"
+    },
+    {
+      "url": "https://schakal.ru/hosts/alive_hosts.txt",
+      "contentType": "HostsFile",
+      "category": "adaway_alive_hosts"
+    },
+    {
+      "url": "https://schakal.ru/hosts/hosts_mail_fb.txt",
+      "contentType": "HostsFile",
+      "category": "adaway_hosts_mail_fb"
+    },
+    {
+      "url": "https://schakal.ru/hosts/alive_hosts_mail_fb.txt",
+      "contentType": "HostsFile",
+      "category": "adaway_alive_hosts_mail_fb"
+    },
+    {
+      "url": "https://schakal.ru/hosts/alive_hosts_ru_com.txt",
+      "contentType": "HostsFile",
+      "category": "adaway_alive_hosts_ru_com"
+    },
+    {
+      "url": "https://schakal.ru/hosts/alive_hosts_ru_com_zen.txt",
+      "contentType": "HostsFile",
+      "category": "adaway_alive_hosts_ru_com_zen"
+    }
+]
