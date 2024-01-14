@@ -71,6 +71,9 @@ To always have up-to-date GeoIP, Geosite, and Rule-set files, functionality for 
 
 The project contains example source files:
 
+- **`sourceAdAway.json`**
+  - Downloads lists of domains provided by [AdAway](https://4pda.to/forum/index.php?showtopic=275091&view=findpost&p=89665467), then categorizes each list.
+
 - **`sourceAntifilter.json`**
   - Downloads lists of IP addresses and domains provided by [Antifilter](https://antifilter.download/), then categorizes each list.
 
@@ -84,6 +87,9 @@ The project contains example source files:
 ## Примеры конфигурации
 
 Проект содержит примеры файлов конфигурации:
+
+- **`sourceAdAway.json`**
+  - Скачивает списки Доменов, предоставленные [AdAway](https://4pda.to/forum/index.php?showtopic=275091&view=findpost&p=89665467), разбивает каждый из списков на категории.
 
 - **`configAntifilter.json`**
   - Скачивает списки IP-адресов и Доменов, предоставленные [Antifilter](https://antifilter.download/), разбивает каждый из списков на категории.
