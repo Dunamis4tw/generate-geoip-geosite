@@ -12,3 +12,4 @@ torrents
 sourceTest.json
 bin
 *.exe
+build.cmd
