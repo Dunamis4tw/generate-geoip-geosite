@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,13 +12,15 @@ import (
 
 // FileData структура для хранения информации о файле
 type FileData struct {
-	Path      string           // полный путь к файлу
-	IsInclude bool             // true, если файл "include" и false, если файл "exclude"
-	IsIP      bool             // true, если файл c IP-адресами и false, если файл с доменами
-	IsRegexp  bool             // true, если файл с регулярными выражениями
-	Category  string           // категория файла
-	Content   []string         // содержимое файла
-	Regex     []*regexp.Regexp // содержимое файла
+	Path        string           // полный путь к файлу
+	IsInclude   bool             // true, если файл "include" и false, если файл "exclude"
+	IsIP        bool             // true, если файл c IP-адресами и false, если файл с доменами
+	IsRegexp    bool             // true, если файл с регулярными выражениями
+	Category    string           // категория файла
+	Content     []string         // содержимое файла
+	Regex       []*regexp.Regexp // скомпилированные Regex выражения из файла
+	IpAddresses []net.IP         // содержимое файла (ip-адреса)
+	IpNetworks  []net.IPNet      // содержимое файла (ip сети)
 	// ExcludeData []string // содержимое файла exclude с регулярными выражениями
 }
 
@@ -113,15 +116,52 @@ func getFileInfo(filePath string) (*FileData, error) {
 		if err != nil {
 			return nil, err
 		}
+		var ipNetworks []net.IPNet
+		var ipAddresses []net.IP
+		// Если список с IP адресами, то парсим их
+		if ip {
+			ipNetworks, ipAddresses = parseIPsAndNetworks(content)
+			logInfo.Println("parsed", len(ipAddresses), "IP addresses")
+			logInfo.Println("parsed", len(ipNetworks), "IP networks")
+		}
 		return &FileData{
-			Path:      filePath,
-			IsInclude: include,
-			IsIP:      ip,
-			IsRegexp:  false,
-			Category:  category,
-			Content:   content,
+			Path:        filePath,
+			IsInclude:   include,
+			IsIP:        ip,
+			IsRegexp:    false,
+			Category:    category,
+			Content:     content,
+			IpNetworks:  ipNetworks,
+			IpAddresses: ipAddresses,
 		}, nil
 	}
+}
+
+func parseIPsAndNetworks(Content []string) ([]net.IPNet, []net.IP) {
+
+	var networks []net.IPNet
+	var ips []net.IP
+
+	for _, address := range Content {
+		_, ipNet, err := net.ParseCIDR(address)
+		if err == nil {
+			ones, bits := ipNet.Mask.Size()
+			if ones == bits { // Если маска равна длине адреса, это одиночный хост
+				ips = append(ips, ipNet.IP)
+				// fmt.Print(ipNet, ones, bits, "\n")
+				continue
+			}
+			networks = append(networks, *ipNet)
+		} else {
+			ip := net.ParseIP(address)
+			if ip != nil {
+				ips = append(ips, ip)
+			} else {
+				logWarn.Printf("invalid IP address or subnet: %s", address)
+			}
+		}
+	}
+	return networks, ips
 }
 
 // checkIncludeExclude проверяет входную строку на include и exclude

@@ -3,9 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
-	"net/netip"
 	"os"
 	"strings"
 	"time"
@@ -118,59 +116,64 @@ func generate(fileDataArray []FileData, config Config) error {
 			ExcludeFileData := findFileData(fileDataArray, false, true, false, fileData.Category)
 			ExcludeFileDataRegex := findFileData(fileDataArray, false, true, true, fileData.Category)
 
-			// Добавляем IP из файла include в итоговый массив
-			for i, ipStr := range fileData.Content {
-
-				var ipNet *net.IPNet
-				// Если в IP адресе есть символ /, то парсим его как адрес записанный методом бесклассовой адресации (CIDR)
-				if strings.Contains(ipStr, "/") {
-					// Пробуем спарсить, если не получается - пропускаем
-					_, ipNet, err = net.ParseCIDR(ipStr)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-				} else {
-					// Пробуем парсить как обычный IP адрес, если не получается - пропускаем
-					addr, err := netip.ParseAddr(ipStr)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-
-					// Если IP адрес нашёлся в списках исключения, то пропускаем его
-					if ExcludeFileData != nil && containsString(ipStr, *ExcludeFileData) {
-						continue
-					}
-					// Если IP адрес нашёлся в списках исключения с регулярками, то пропускаем его
-					if ExcludeFileDataRegex != nil && containsString(ipStr, *ExcludeFileDataRegex) {
-						continue
-					}
-
-					// Конвертируем IP адрес в строку байтов (4 или 16 в зависимости от версии IP)
-					ipNet = &net.IPNet{
-						IP: addr.AsSlice(),
-					}
-					// Добавляем маску /32 или /128 в зависимости от версии IP
-					if addr.Is4() {
-						ipNet.Mask = net.CIDRMask(32, 32)
-					} else if addr.Is6() {
-						ipNet.Mask = net.CIDRMask(128, 128)
-					}
+			for i, IpAddr := range fileData.IpAddresses {
+				// Если IP адрес нашёлся в списках исключения с регулярками, то пропускаем его
+				if ExcludeFileDataRegex != nil && containsString(IpAddr.String(), *ExcludeFileDataRegex) {
+					continue
+				}
+				// Если IP адрес входит в одну из сетей из списка исключений, то пропускаем его
+				if ExcludeFileData != nil && containsIp(IpAddr, *ExcludeFileData) {
+					continue
 				}
 
-				RuleSetIPCIDR = append(RuleSetIPCIDR, ipNet.String())
+				// Конвертируем IP адрес в IP сеть с маской /32 или /128
+				var network net.IPNet = getIPNetwork(IpAddr)
+
+				RuleSetIPCIDR = append(RuleSetIPCIDR, network.String())
 
 				// Вставляем полученный IP адрес в указанную категорию в MMDB GeoIP
-				if err := mmdb.Insert(ipNet, mmdbtype.String(fileData.Category)); err != nil {
-					logWarn.Printf("cannot insert '%s' into mmdb: %v", ipNet, err)
+				if err := mmdb.Insert(&network, mmdbtype.String(fileData.Category)); err != nil {
+					logWarn.Printf("cannot insert '%s' into mmdb: %v", network, err)
 				}
 
 				// Выводит в консоль информацию о скорости добавления
 				if time.Since(startTime).Seconds() > 1 {
 					var speed = float64(i-lastIndex) / float64(time.Since(startTime).Seconds())
 					var prog = float64(i*100) / float64(len(fileData.Content))
-					fmt.Printf("\rGeneration speed: %.2f lines per second (%.2f%% complete)", speed, prog)
+					fmt.Printf("\rIP address processing speed: %.2f lines per second (%.2f%% complete)", speed, prog)
+					startTime = time.Now()
+					lastIndex = i
+				}
+			}
+
+			startTime = time.Now()
+			lastIndex = 0
+			for i, IpNet := range fileData.IpNetworks {
+				// Если IP сеть нашлась в списках исключения с регулярками, то пропускаем его
+				if ExcludeFileDataRegex != nil && containsString(IpNet.String(), *ExcludeFileDataRegex) {
+					continue
+				}
+				// Если IP сеть входит в одну из сетей из списка исключений, то пропускаем его
+				if ExcludeFileData != nil && containsIp(IpNet.IP, *ExcludeFileData) {
+					continue
+				}
+				// Если в IP сеть входит один из IP адресов из списка исключений, то пропускаем его
+				if ExcludeFileData != nil && containsNetwork(IpNet, *ExcludeFileData) {
+					continue
+				}
+
+				RuleSetIPCIDR = append(RuleSetIPCIDR, IpNet.String())
+
+				// Вставляем полученный IP адрес в указанную категорию в MMDB GeoIP
+				if err := mmdb.Insert(&IpNet, mmdbtype.String(fileData.Category)); err != nil {
+					logWarn.Printf("cannot insert '%s' into mmdb: %v", IpNet, err)
+				}
+
+				// Выводит в консоль информацию о скорости добавления
+				if time.Since(startTime).Seconds() > 1 {
+					var speed = float64(i-lastIndex) / float64(time.Since(startTime).Seconds())
+					var prog = float64(i*100) / float64(len(fileData.Content))
+					fmt.Printf("\rIP address processing speed: %.2f lines per second (%.2f%% complete)", speed, prog)
 					startTime = time.Now()
 					lastIndex = i
 				}
@@ -236,7 +239,7 @@ func generate(fileDataArray []FileData, config Config) error {
 				if time.Since(startTime).Seconds() > 1 {
 					var speed = float64(i-lastIndex) / float64(time.Since(startTime).Seconds())
 					var prog = float64(i*100) / float64(len(fileData.Content))
-					fmt.Printf("\rGeneration speed: %.2f lines per second (%.2f%% complete)", speed, prog)
+					fmt.Printf("\rDomain processing speed: %.2f lines per second (%.2f%% complete)", speed, prog)
 					startTime = time.Now()
 					lastIndex = i
 				}
@@ -378,6 +381,55 @@ func containsString(inputStr string, fileData FileData) bool {
 		}
 	}
 	return false
+}
+
+// containsIp проверяет ip, есть ли он в файле fileData (Нужно для проверки на исключение)
+func containsIp(ip net.IP, fileData FileData) bool {
+	// Проверяем есть ли ip в подсетях на исключения
+	for _, network := range fileData.IpNetworks {
+		if network.Contains(ip) {
+			// logInfo.Printf("ip %s was excluded due to network %s\n", ip.String(), network.String())
+			return true
+		}
+	}
+	// Проверяем есть ли ip в IP адресах на исключения
+	for _, IpAddr := range fileData.IpAddresses {
+		if IpAddr.Equal(ip) {
+			// logInfo.Printf("ip %s was excluded due to address %s\n", ip.String(), IpAddr.String())
+			return true
+		}
+	}
+	return false
+}
+
+// containsIp проверяет сеть ipNet, есть ли она в файле fileData (Нужно для проверки на исключение)
+func containsNetwork(ipNet net.IPNet, fileData FileData) bool {
+	// Проверяем есть ли сеть ipNet в IP адресах на исключения
+	for _, IpAdd := range fileData.IpAddresses {
+		if ipNet.Contains(IpAdd) {
+			// logInfo.Printf("network %s was excluded due to address %s\n", ipNet.String(), IpAdd.String())
+			return true
+		}
+	}
+	return false
+}
+
+// getIPNetwork делает из net.IP сеть net.IPNet с маской /32 или /128
+func getIPNetwork(ip net.IP) net.IPNet {
+	var mask net.IPMask
+	var network net.IPNet
+
+	// Если IPv4
+	if ip.To4() != nil {
+		mask = net.CIDRMask(32, 32) // уменьшаем маску на 1 бит для хоста
+		network = net.IPNet{IP: ip, Mask: mask}
+		return network
+	}
+
+	// Если IPv6
+	mask = net.CIDRMask(128, 128) // уменьшаем маску на 1 бит для хоста
+	network = net.IPNet{IP: ip, Mask: mask}
+	return network
 }
 
 // extractCategories выводит список массив с категориями, прочитанным из папки
