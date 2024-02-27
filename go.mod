@@ -6,6 +6,7 @@ require github.com/maxmind/mmdbwriter v1.0.0
 
 require (
 	berty.tech/go-libtor v1.0.385 // indirect
+	github.com/adrg/xdg v0.4.0 // indirect
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/andybalholm/brotli v1.0.6 // indirect
 	github.com/caddyserver/certmagic v0.19.2 // indirect
@@ -83,6 +84,7 @@ require (
 	github.com/google/uuid v1.4.0
 	github.com/oschwald/maxminddb-golang v1.12.0 // indirect
 	github.com/sagernet/sing-box v1.8.0-alpha.10
+	github.com/v2fly/v2ray-core/v5 v5.13.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/sys v0.15.0 // indirect
 )

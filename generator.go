@@ -13,6 +13,8 @@ import (
 	"github.com/sagernet/sing-box/common/geosite"
 	"github.com/sagernet/sing-box/common/srs"
 	"github.com/sagernet/sing-box/option"
+	router "github.com/v2fly/v2ray-core/v5/app/router/routercommon"
+	"google.golang.org/protobuf/proto"
 )
 
 // Rule структура для представления правил в JSON
@@ -88,6 +90,9 @@ func generate(fileDataArray []FileData, config Config) error {
 	if err != nil {
 		return fmt.Errorf("cannot create new mmdb: %v", err)
 	}
+
+	// Готовим переменную для списка v2ray (.dat)
+	protoList := new(router.GeoSiteList)
 
 	// Перебираем файлы
 	for _, fileData := range fileDataArray {
@@ -191,6 +196,9 @@ func generate(fileDataArray []FileData, config Config) error {
 			// Создаём массив айтемов (доменов) geosite (объект из библиотеки сингбокса)
 			var domains []geosite.Item
 
+			// Создаём массив доменов v2ray (объект из библиотеки v2ray)
+			var v2raydomains []*router.Domain
+
 			// Находим исключающий файл с доменами этой же категории
 			ExcludeFileData := findFileData(fileDataArray, false, false, false, fileData.Category)
 			ExcludeFileDataRegex := findFileData(fileDataArray, false, false, true, fileData.Category)
@@ -225,12 +233,23 @@ func generate(fileDataArray []FileData, config Config) error {
 						Type:  geosite.RuleTypeDomain,
 						Value: strings.Replace(domain, "*.", "", 1),
 					})
+					// Добавляем домены в список доменов v2ray
+					v2raydomains = append(v2raydomains, &router.Domain{
+						Type:      router.Domain_Full, // Домен и поддомены
+						Value:     strings.Replace(domain, "*.", "", 1),
+						Attribute: []*router.Domain_Attribute{},
+					})
 					RuleSetDomain = append(RuleSetDomain, strings.Replace(domain, "*.", "", 1))
 				} else {
 					// в случае, если нет символа "*", то просто добавляем домен задав тип, означающий что эта запись - домен
 					domains = append(domains, geosite.Item{
 						Type:  geosite.RuleTypeDomain,
 						Value: domain,
+					})
+					v2raydomains = append(v2raydomains, &router.Domain{
+						Type:      router.Domain_RootDomain, // Только домен, без поддоменов
+						Value:     strings.Replace(domain, "*.", "", 1),
+						Attribute: []*router.Domain_Attribute{},
 					})
 					RuleSetDomain = append(RuleSetDomain, domain)
 				}
@@ -247,6 +266,12 @@ func generate(fileDataArray []FileData, config Config) error {
 
 			// Добавляем в map категорию
 			domainsMap[fileData.Category] = domains
+
+			// Добавляем в категорию с доменами в dat файл
+			protoList.Entry = append(protoList.Entry, &router.GeoSite{
+				CountryCode: fileData.Category,
+				Domain:      v2raydomains,
+			})
 
 			if lastIndex != 0 {
 				fmt.Println()
@@ -330,6 +355,17 @@ func generate(fileDataArray []FileData, config Config) error {
 		if err := geosite.Write(outSites, domainsMap); err != nil {
 			return fmt.Errorf("cannot write into geosite file: %v", err)
 		}
+	}
+
+	// Сохранение в .dat файл (формат v2ray)
+	protoBytes, err := proto.Marshal(protoList) // Преобразование в байты
+	if err != nil {
+		return fmt.Errorf("error marshalling into bytes: %v", err)
+	}
+	if err := os.WriteFile(config.OutputDir+"domains.dat", protoBytes, 0644); err != nil {
+		return fmt.Errorf("error writing into v2ray geosite file: %v", err)
+	} else {
+		fmt.Println(config.OutputDir+"domains.dat", "has been generated successfully.")
 	}
 
 	if config.Generate.GeoIP {
@@ -449,4 +485,18 @@ func extractCategories(fileDataArray []FileData) []string {
 	}
 
 	return categories
+}
+
+// v2ray
+type Entry struct {
+	Type  string
+	Value string
+	Attrs []*router.Domain_Attribute
+}
+
+// v2ray
+type ParsedList struct {
+	Name      string
+	Inclusion map[string]bool
+	Entry     []Entry
 }
