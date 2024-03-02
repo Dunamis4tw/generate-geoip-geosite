@@ -9,6 +9,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 func Downloader(configs *Config) error {
@@ -145,7 +147,11 @@ func parseCsvDumpAntizapret(input string) ([]string, []string) {
 	var ipAddresses []string
 	var domains []string
 
-	lines := strings.Split(input, "\n")
+	// Декодируем входную строку из Windows-1251 в UTF-8
+	decoder := charmap.Windows1251.NewDecoder()
+	decodedInput, _ := decoder.String(input)
+
+	lines := strings.Split(decodedInput, "\n")
 	for _, line := range lines {
 		// Разделяем строку на столбцы по символу ";"
 		columns := strings.Split(line, ";")
