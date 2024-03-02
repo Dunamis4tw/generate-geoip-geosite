@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set VERSION=1.3.0
+set VERSION=1.4.0-alpha.1
 set OUTPUT_DIR=bin
 set BINARY_NAME=generate-geoip-geosite
 
@@ -47,18 +47,3 @@ for %%o in (%OS_LIST%) do (
 
 echo Compilation and packaging completed.
 pause
-
-REM sing-box-1.7.1-linux-386.tar.gz
-REM sing-box-1.7.1-linux-amd64.tar.gz
-REM sing-box-1.7.1-linux-amd64v3.tar.gz
-REM sing-box-1.7.1-linux-arm64.tar.gz
-REM sing-box-1.7.1-linux-armv7.tar.gz
-REM sing-box-1.7.1-linux-s390x.tar.gz
-REM sing-box-1.7.1-windows-386-legacy.zip
-REM sing-box-1.7.1-windows-386.zip
-REM sing-box-1.7.1-windows-amd64-legacy.zip
-REM sing-box-1.7.1-windows-amd64.zip
-REM sing-box-1.7.1-windows-amd64v3.zip
-REM sing-box-1.7.1-windows-arm64.zip
-
-REM generate-geoip-geosite-{version}-{OS}-{arch}.{zip/tar.gz}
